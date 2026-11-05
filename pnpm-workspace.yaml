@@ -1,0 +1,6 @@
+# pnpm workspace for the JS/TS side of the Bird's Eye Review monorepo.
+# The Python side (steps/, ber_core/, server/) is unaffected — this only governs
+# the Node packages: the shared dashboard component library and the studio.
+packages:
+  - "packages/*"
+  - "studio"

@@ -1,0 +1,65 @@
+You are triaging data-extracted clinical studies for a "{topic_name}" evidence review.
+
+{topic_description}
+
+For EACH study below, decide its clinical indication relative to {topic_name}, so the review
+can separate studies that treat the condition, studies that try to prevent it, and records
+that are not intervention studies of {topic_name} at all.
+
+Classify each study as exactly ONE of:
+
+- "treatment"  — The study ADMINISTERS an intervention to people who ALREADY HAVE {topic_name}
+                 (or its defining symptoms/features) and evaluates the intervention's effect on
+                 that existing condition (symptoms, severity, function, recovery, remission,
+                 relapse, or condition-specific biomarkers).
+
+- "prevention" — The intervention is given to people who do NOT (yet) have {topic_name}, or
+                 before its onset, and the outcome is whether {topic_name} subsequently develops
+                 (incidence, risk, onset, prophylaxis, protective effect).
+
+- "both"       — The study explicitly evaluates the SAME intervention for both prevention AND
+                 treatment.
+
+- "exclude"    — Not a human intervention study of {topic_name}. Includes:
+                 * studies where NO intervention is administered: observational cohorts,
+                   case-control or cross-sectional comparisons, natural-history follow-ups, or
+                   records whose only "intervention" arm is the patient cohort itself
+                   (e.g. "no intervention", "usual course");
+                 * preclinical / animal / in-vitro work; mechanism, biomarker or
+                   pathophysiology-only studies; diagnostic, imaging or prognostic modelling;
+                   epidemiology, health-economics, surveys, methods or bibliometric papers;
+                 * studies of a different condition with no {topic_name} outcome.
+
+STUDY FIELDS
+- `intervention_administered` is derived from the study's arms: false when its only
+  "intervention" arms are placeholders for no treatment, or when it has none.
+- `{condition_field}` is how the study defined {topic_name} in its participants (may be empty).
+- `inclusion` and `primary_outcomes` describe the population and what was measured.
+- `studies_treatment_hint` is a screening-stage flag and is often wrong — a weak prior only.
+
+RULES
+1. An intervention must ACTUALLY BE ADMINISTERED for "treatment", "prevention" or "both".
+   If none was given, the study is "exclude".
+2. When `intervention_administered` is false the study is almost always "exclude"; override
+   only if the title, interventions or outcomes clearly show a real intervention WAS given.
+3. Judge treatment versus prevention by the POPULATION and the OUTCOME TIMING, not by the
+   intervention's name: the same agent can treat existing disease or prevent its onset.
+4. When a study clearly administers an intervention to people with {topic_name} but you cannot
+   tell treatment from prevention, prefer "treatment".
+5. Administration alone does not make a procedure a treatment. A provocative or diagnostic
+   challenge (for example a maximal exercise test used to elicit post-exertional symptoms,
+   or a drug challenge used to measure an endocrine response) is "exclude" when its purpose
+   is to characterize disease physiology rather than evaluate an intended therapy. Distinguish
+   these from therapeutic exercise/rehabilitation and from reports that evaluate a genuine
+   treatment alongside a diagnostic test. Conversely, do not exclude an actual treatment-effect
+   analysis merely because its outcomes are biomarkers or because a secondary economic report
+   also reports patient health/function or QALY effects. Costs alone are not clinical effects.
+6. Every input paper_id MUST appear exactly once as a key in your output.
+
+OUTPUT
+Return ONLY a JSON object mapping each paper_id to its classification and a short rationale:
+  { "<paper_id>": { "indication": "treatment|prevention|both|exclude", "rationale": "<one short sentence>" }, ... }
+No commentary, no markdown — just the JSON object.
+
+STUDIES:
+{studies_json}

@@ -1,0 +1,39 @@
+# --- Web framework ---
+fastapi
+uvicorn[standard]
+
+# --- Database (async; sqlite default, postgres via asyncpg) ---
+sqlalchemy[asyncio]>=2
+aiosqlite
+asyncpg
+
+# --- Config / auth ---
+pydantic-settings
+pyjwt
+argon2-cffi
+python-multipart
+
+# --- Serialization ---
+PyYAML
+
+# --- Metadata enrichment (runs IN-PROCESS in the arq worker, not a subprocess,
+#     so `requests` must be in THIS venv — the pipeline's `metadata_fetcher`
+#     imports it). Without it every metadata job fails "No module named requests"
+#     and the evidence table never auto-populates biblio. ---
+requests
+
+# --- Job engine (arq/redis-backed background pipeline runs) ---
+arq>=0.26
+
+# --- Secrets at rest (Fernet-encrypt the user's OpenRouter API key) ---
+cryptography
+
+# --- Rate limiting (per-IP limits on /auth/*; see app/ratelimit.py) ---
+slowapi
+
+# --- Dev / test ---
+httpx
+pytest
+pytest-asyncio
+pytest-xdist
+anyio

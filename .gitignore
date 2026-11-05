@@ -1,0 +1,79 @@
+# --- Node / JS workspace (packages/, studio/) ---
+node_modules/
+.pnpm-store/
+dist/
+build/
+.next/
+*.tsbuildinfo
+
+# --- Python ---
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# --- Env / secrets (NEVER commit) ---
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# --- Claude Code runtime artifacts ---
+.claude/
+
+# --- OS / editor / Dropbox cruft ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*~
+~$*
+*.bak
+*.tmp
+* (*conflicted copy*)*
+
+# --- Per-review material (kept local; only the generic template is shipped) ---
+# Review configs and per-review prompt overrides (prompts/<slug>/) describe a
+# specific review, so they stay out of version control by default.
+configs/*
+!configs/example.yaml
+prompts/*/
+
+# --- Pipeline DATA (large, regenerable, per-review artifacts — NOT source) ---
+# projects/{slug}/ holds abstracts, PDFs, converted text, extractions, data CSV/
+# JSONL (~6GB). These are pipeline OUTPUT, not code. The studio produces its own
+# per-review workspaces elsewhere; configs/config_*.yaml ARE source.
+projects/
+
+# --- Pipeline run artifacts (large / regenerable) ---
+nohup.out
+*.log
+
+# --- Studio server (FastAPI) + studio frontend (Next 15) ---
+server/.venv/
+server/_data/
+server/dev.db
+server/_uvicorn.log
+*.db
+# WAL sidecars (the dev database runs in journal_mode=WAL — see db/session.py).
+# `*.db` does not match these, so without them the pair shows up as untracked.
+*.db-wal
+*.db-shm
+studio/.next/
+studio/next-env.d.ts
+studio/.turbo/
+
+# --- dev.sh runtime state (pids + logs) ---
+.run/
+
+# Cached online publication lookups (derived metadata is exported separately).
+projects/*/data/publication_cache/
+
+# INSPECT-SR guidance, fetched by scripts/download_inspect_sr.py (CC BY 4.0).
+docs/inspect_sr/upstream/

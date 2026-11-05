@@ -1,0 +1,10 @@
+{
+  "name": "birds-eye-review-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "JS/TS workspace root for the Bird's Eye Review studio: shared dashboard-ui component library and the studio app. The Python pipeline lives alongside at the repo root and is not part of this workspace.",
+  "packageManager": "pnpm@10.27.0",
+  "scripts": {
+    "typecheck": "pnpm -r typecheck"
+  }
+}

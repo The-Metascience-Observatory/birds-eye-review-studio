@@ -1,0 +1,71 @@
+/* Fallback tokens for the shared component library, in case a consumer forgets
+ * to define them. Studio defines the full set below, so this is belt-and-braces.
+ *
+ * MUST stay above the @tailwind directives: CSS requires @import to precede all
+ * other rules, and Tailwind expands `@tailwind base` in place into ~1750 lines —
+ * so an @import written below them ends up after real rules and the build fails
+ * with "@import rules must precede all rules aside from @charset and @layer". */
+@import "@bird/dashboard-ui/styles.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens (HSL channels) mirroring the public website + @bird/dashboard-ui.
+ * Light theme first; dark via prefers-color-scheme AND an explicit .dark class. */
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222 20% 18%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 20% 18%;
+  --border: 220 13% 91%;
+  --primary: 210 68% 25%; /* deep chart blue (#1a5276-ish) */
+  --primary-foreground: 0 0% 100%;
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 9% 46%;
+  /* Subtle hover-surface tint (bg-accent on buttons/rows). Matches muted so the
+   * highlight reads as intentional against cards. */
+  --accent: 220 14% 94%;
+  --accent-foreground: 222 20% 18%;
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 222 24% 10%;
+  --foreground: 210 20% 92%;
+  --card: 222 22% 13%;
+  --card-foreground: 210 20% 92%;
+  --border: 217 19% 24%;
+  --primary: 210 70% 60%;
+  --primary-foreground: 222 24% 10%;
+  --muted: 217 19% 18%;
+  --muted-foreground: 218 11% 65%;
+  --accent: 217 19% 22%;
+  --accent-foreground: 210 20% 92%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: 222 24% 10%;
+    --foreground: 210 20% 92%;
+    --card: 222 22% 13%;
+    --card-foreground: 210 20% 92%;
+    --border: 217 19% 24%;
+    --primary: 210 70% 60%;
+    --primary-foreground: 222 24% 10%;
+    --muted: 217 19% 18%;
+    --muted-foreground: 218 11% 65%;
+    --accent: 217 19% 22%;
+    --accent-foreground: 210 20% 92%;
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+}

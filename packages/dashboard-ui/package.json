@@ -1,0 +1,33 @@
+{
+  "name": "@bird/dashboard-ui",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shared, prop-driven Bird's Eye Review dashboard components (forest plots, results table, filter shell, charts). Consumed by the studio and by newly-generated dashboards. Historical website dashboards keep their own bespoke copies and do NOT use this package.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles.css"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.15.0",
+    "lucide-react": "^0.468.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.15.4",
+    "typescript": "^5.6.0",
+    "lucide-react": "^0.468.0"
+  }
+}

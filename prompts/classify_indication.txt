@@ -1,0 +1,33 @@
+You are a biomedical literature classifier for a review of {topic_name}. Read the following title and abstract and assign TWO independent labels:
+
+1. ORGANISM — the biological system in which the study's MAIN result was produced.
+2. INDICATION — whether the intervention is being evaluated to PREVENT the condition (prophylaxis) or to TREAT established disease/symptoms (therapeutic).
+
+These two axes are independent of study design and of each other. Judge each only from what the abstract actually reports.
+
+ORGANISM CATEGORIES:
+{organism_categories_list}
+
+ORGANISM GUIDANCE:
+- "human" — human participants, patients, or volunteers (clinical trials, observational studies, case series). Choose this even if there is a small supporting lab component.
+- "animal" — efficacy or mechanism experiments in live animals.
+- "other" — in-vitro / cell-culture / ex-vivo / in-silico or any non-whole-human system, when no specific category for it is listed.
+- "unclear" — the organism/system genuinely cannot be determined from the abstract.
+
+INDICATION CATEGORIES:
+{indication_categories_list}
+
+INDICATION GUIDANCE:
+- "treatment" — the intervention is given to subjects who ALREADY HAVE the condition to reduce its severity, symptoms, frequency, or progression (therapeutic). Most {topic_name} trials are treatment.
+- "prevention" — the intervention is given to PREVENT the condition from developing, or to reduce its incidence/onset in at-risk subjects (prophylaxis, pre-exposure).
+- "both" — the study explicitly evaluates the same intervention for BOTH prevention and treatment.
+- "not_applicable" — there is no prevention-or-treatment efficacy endpoint: mechanism-of-action, pharmacokinetics, diagnostic, prevalence/epidemiology, or methodological work.
+- "unclear" — an intervention is studied but the abstract does not say whether the intent is preventive or therapeutic.
+
+TITLE AND ABSTRACT:
+{abstract}
+
+Both values MUST be copied exactly (lowercase, with underscores) from the category lists above. Do not invent new categories.
+
+Respond with ONLY a JSON object and no other text:
+{{"organism": "<organism_category>", "indication": "<indication_category>", "confidence": "<high|medium|low>"}}

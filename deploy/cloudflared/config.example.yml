@@ -1,0 +1,32 @@
+# Cloudflare tunnel config for the Bird's Eye Review studio.
+#
+# Copy to ~/.cloudflared/config.yml, fill in the placeholders, and run
+#   cloudflared tunnel run birds-eye-studio
+# (or install the systemd unit alongside this file).
+#
+# ONE hostname, pointed at the studio only. The API is deliberately NOT tunnelled
+# separately: the studio proxies /api to it from its own origin
+# (studio/next.config.mjs), so the API keeps no reachable socket of its own and a
+# single Cloudflare Access application covers the whole app. Exposing the API on
+# a second hostname would put it behind a SECOND Access application, which
+# answers cross-origin XHR with a login redirect and breaks every request the
+# app makes.
+
+tunnel: REPLACE_WITH_TUNNEL_ID
+# Absolute path (cloudflared does not expand ~ here), e.g.
+# /home/<you>/.cloudflared/<tunnel-id>.json
+credentials-file: /home/REPLACE_WITH_USER/.cloudflared/REPLACE_WITH_TUNNEL_ID.json
+
+ingress:
+  - hostname: REPLACE_WITH_YOUR_HOSTNAME     # e.g. studio.example.com
+    service: http://127.0.0.1:3002
+    originRequest:
+      # How long cloudflared waits to open the TCP connection to the studio
+      # (the default). It is NOT a limit on how long a response may stream:
+      # long-lived job-log streams (SSE) stay open past it, and the API sends a
+      # keepalive comment every SSE_PING_SECONDS so the edge never sees them
+      # idle.
+      connectTimeout: 30s
+      noTLSVerify: false
+  # Required final rule: anything not matched above is refused.
+  - service: http_status:404

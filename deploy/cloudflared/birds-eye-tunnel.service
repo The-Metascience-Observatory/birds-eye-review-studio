@@ -1,0 +1,36 @@
+# systemd unit for the Cloudflare tunnel fronting the studio.
+#
+# Replace REPLACE_WITH_USER with the account that owns ~/.cloudflared (the one
+# that ran `cloudflared tunnel login`), then:
+#
+#   sudo cp deploy/cloudflared/birds-eye-tunnel.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now birds-eye-tunnel
+#
+# Runs as the desktop user (not root): the tunnel only needs to open outbound
+# connections and reach 127.0.0.1:3002, so root buys nothing and costs blast
+# radius. Note this unit starts the TUNNEL only — the studio and API themselves
+# are started by `./dev.sh up --public`.
+
+[Unit]
+Description=Cloudflare tunnel — Bird's Eye Review studio
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+User=REPLACE_WITH_USER
+ExecStart=/usr/local/bin/cloudflared --no-autoupdate tunnel run birds-eye-studio
+Restart=on-failure
+RestartSec=5s
+# The tunnel talks to loopback and the internet; it has no business writing
+# anywhere on this disk.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+# %h is the home directory of User= above.
+ReadWritePaths=%h/.cloudflared
+
+[Install]
+WantedBy=multi-user.target

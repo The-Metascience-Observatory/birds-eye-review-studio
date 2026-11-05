@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+# The pipeline runs FROM A CHECKOUT: the step scripts in steps/ are not packaged,
+# so there is no console entry point. Run it as
+#
+#     python run_pipeline.py --config configs/config_<topic>.yaml
+#
+# Installing this project (pip install -e .) provides the shared ber_core package
+# the scripts and the studio server import, plus the dependency sets below.
+
+[project]
+name = "birds-eye-review"
+version = "0.1.0"
+description = "AI-assisted systematic reviews: search, screen, extract, pool and build a dashboard"
+readme = "README.md"
+authors = [{ name = "Dan Elton" }]
+requires-python = ">=3.11"
+license = { text = "Proprietary — all rights reserved" }
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: Other/Proprietary License",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+dependencies = [
+    "PyYAML>=6",
+    "requests>=2.31",
+    "python-dotenv>=1",
+    "numpy",
+    "scipy",
+    "biopython",
+    "tqdm",
+    "jsonschema>=4",
+]
+
+[project.optional-dependencies]
+# PDF download. fetchpdf is a sibling repository, not a PyPI package: install it
+# from your checkout (pip install -e ../fetchpdf_public) or a VCS URL. Optional
+# extra PDF sources register through the `ber.pdf_sources` entry-point group
+# (see steps/download_pdfs.py); lxml enables fetchpdf's HTML tiers.
+download = ["lxml"]
+# PDF/HTML -> body.md. pdf4llm is ALSO a sibling repository and must be
+# installed from it (pip install -e ../pdf4llm). Do NOT add "pdf4llm" here: the
+# PyPI package of that name is an unrelated project, so a plain
+# `pip install birds-eye-review[conversion]` would pull in someone else's code
+# under the name this pipeline imports (dependency confusion).
+# PyMuPDF (AGPL) is what reads a PDF when no converted text exists; without it
+# those papers get no text and a loud one-time warning, so it stays optional.
+conversion = ["docling", "docling-core", "PyMuPDF"]
+# Crossref BibTeX fallback in metadata_fetcher (skipped when absent).
+bibtex = ["bibtexparser"]
+studio = ["fastapi", "uvicorn[standard]", "sqlalchemy[asyncio]>=2", "aiosqlite", "asyncpg", "pydantic-settings", "pyjwt", "argon2-cffi", "python-multipart", "arq>=0.26", "cryptography", "slowapi", "httpx", "anyio"]
+test = ["pytest", "pytest-asyncio", "pytest-xdist", "httpx", "anyio", "pyflakes"]
+
+[tool.setuptools]
+# The shared library only. steps/ and scripts/ are run by path from a checkout.
+packages = ["ber_core"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Parallel by default. Worker count comes from pytest_xdist_auto_num_workers in
+# tests/conftest.py (min(7, cores-1)); loadfile keeps each FILE on one worker so
+# within-module ordering/state assumptions keep holding. server/tests/ has its
+# own pytest.ini and is not governed by this table. -rs lists every skipped test
+# with its reason, so a silently skipped suite cannot pass for a green one.
+addopts = "-n auto --dist loadfile -rs"

@@ -1,0 +1,28 @@
+You are re-categorizing clinical-study interventions for a "{topic_name}" evidence dashboard.
+
+{topic_description}
+
+Each intervention below is currently labelled with a catch-all category ("other", "unknown",
+or blank). Your job is to assign each one to the SINGLE most appropriate category from the
+ALLOWED list, so the dashboard can group it with similar interventions instead of dumping it
+in a catch-all bucket.
+
+ALLOWED CATEGORIES (use these exact strings; choose exactly one per intervention):
+{categories_list}
+
+RULES
+1. Choose the BEST single category. Prefer a specific category over "other"; only keep
+   "other" when nothing in the list genuinely fits (e.g. an exposure or challenge procedure,
+   an in-vitro stimulation, or a study arm that is not actually an intervention).
+2. Judge by the INTERVENTION itself, not the disease being studied.
+3. Combination therapies: categorise by the primary/most-defining component.
+4. Use ONLY the category strings listed above, copied exactly. Do not invent categories.
+5. Every input name MUST appear exactly once as a key in your output.
+
+OUTPUT
+Return ONLY a JSON object mapping each input intervention name to its category:
+  {"<intervention name>": "<category>", ...}
+No commentary, no markdown — just the JSON object.
+
+INTERVENTIONS (name — current category — # trials):
+{names_json}

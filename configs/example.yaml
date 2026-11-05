@@ -1,0 +1,208 @@
+# Bird's Eye Review — example review configuration.
+#
+# Copy this file to start a new review, then edit every section:
+#
+#     cp configs/example.yaml configs/config_my_topic.yaml
+#     python run_pipeline.py --config configs/config_my_topic.yaml --dry-run
+#
+# Every pipeline script takes `--config <this file>` (there is no default).
+# The project's working directory is projects/<slug>/, where <slug> is derived
+# from `topic.name` (e.g. "Melatonin for insomnia" -> melatonin_for_insomnia).
+# API keys and your contact e-mail do NOT go here: put them in .env.local
+# (see .env.example).
+#
+# The example topic below is illustrative only.
+
+# --- The question --------------------------------------------------------------
+topic:
+  # Display name; also determines the project slug. Changing it later points the
+  # pipeline at a DIFFERENT project directory.
+  name: "Melatonin for insomnia"
+  # Alternative names. Used to seed search queries and by the keyword pre-gate
+  # (classification.pregate below) to skip clearly off-topic abstracts cheaply.
+  synonyms:
+    - "melatonin"
+    - "N-acetyl-5-methoxytryptamine"
+  # One or two sentences the screening prompts quote verbatim.
+  description: >
+    Melatonin (and melatonin-receptor agonists) given to adults to treat
+    insomnia, judged on sleep onset, sleep maintenance and daytime function.
+  # Things a paper can mention while NOT being about this topic. Each bullet is
+  # shown to the screening model as an exclusion hint.
+  not_about:
+    - "mentions melatonin only as a biomarker or circadian measurement"
+    - "studies jet lag or shift-work circadian disruption rather than insomnia"
+  # MeSH headings (informational; the PubMed queries below are what run).
+  mesh_terms:
+    - "Melatonin"
+    - "Sleep Initiation and Maintenance Disorders"
+  # Which trials form the dashboard's main feed: `treatment` (prevention studies
+  # go to a side feed, prevention_trials.jsonl), `prevention` (the reverse:
+  # treatment studies go to treatment_trials.jsonl) or `all`.
+  indication_focus: treatment
+
+# --- Search (step 1) -----------------------------------------------------------
+# One list of queries per source; every query is run and the results deduplicated
+# by DOI / PMID / title. Leave a source's list empty (or remove it) to skip it.
+search:
+  pubmed:
+    - '"melatonin"[Title/Abstract] AND ("insomnia"[Title/Abstract] OR "sleep initiation"[Title/Abstract])'
+  openalex_title:
+    - "melatonin insomnia"
+  openalex_abstract:
+    - "melatonin insomnia"
+  europepmc:
+    - 'TITLE:"melatonin" AND (TITLE:"insomnia" OR ABSTRACT:"insomnia")'
+  semantic_scholar:
+    - '"melatonin" insomnia'
+  # cyberleninka: []        # Russian-language source (needs Russian queries)
+  # lesswrong:              # forum posts; rarely relevant to clinical reviews
+  #   forums: [lesswrong]
+  #   tags: []
+  #   keywords: []
+
+# --- Vocabularies the models choose from --------------------------------------
+# These lists are pasted into the prompts and every answer is validated against
+# them. An EMPTY list is a real failure mode (the model invents labels nothing
+# downstream accepts), so keep them filled.
+
+# Article types for the abstract screen (steps/classify.py quick). The paper store
+# files each paper under papers/<article type>/<doi>/.
+article_types:
+  - Original Research
+  - Clinical Trial
+  - Systematic Review
+  - Scoping Review
+  - Meta-Analysis
+  - Narrative Review
+  - Case Report
+  - Case Series
+  - Editorial/Commentary/Opinion
+  - Prospective Cohort Study
+  - Retrospective Cohort Study
+  - Other Observational Study
+  - Case-Control Study
+  - Cross-Sectional Study
+  - Qualitative Study
+  - Mixed Methods Study
+  - Guidelines/Consensus Statement
+  - Study Protocol
+  - Survey Study
+  - Erratum
+  - Preprint/Other
+  - no_abstract
+
+# Intervention categories extracted in pass 2 (and the meta-analysis grouping).
+intervention_categories:
+  - melatonin_immediate_release
+  - melatonin_prolonged_release
+  - melatonin_receptor_agonist      # ramelteon, tasimelteon, agomelatine
+  - combination
+  - other
+
+# Outcome domains extracted in pass 2 (dashboard filters and forest plots).
+outcome_domains:
+  - sleep_onset_latency
+  - total_sleep_time
+  - sleep_quality
+  - daytime_functioning
+  - safety_adverse_events
+  - other
+
+# Optional extra classifiers (steps/classify.py study_design / indication / drug_class),
+# only needed when you run those subcommands:
+# study_design_categories: [rct, non_randomized_trial, crossover, observational, other, unclear]
+# organism_categories: [human, animal, other, unclear]
+# indication_categories: [prevention, treatment, both, not_applicable, unclear]
+# drug_class_categories: [...]   # defaults to intervention_categories
+
+# --- Scope ---------------------------------------------------------------------
+include_observational: true      # also extract observational studies (pass 2 runs twice)
+include_animal_studies: false    # default: non-human papers are excluded
+generate_meta_analysis: false    # pool forest plots into meta_analysis.json at export
+
+# How the pass-2 input buckets (projects/<slug>/eligible_rct/, eligible_observational/)
+# are built: `pass1` (default) — the full-text eligibility screen decides and
+# stage_eligible.py rebuilds the buckets; `manual` — you curate them yourself and
+# the pipeline never touches them.
+staging: pass1
+
+# --- Models --------------------------------------------------------------------
+# CLI aliases (haiku / sonnet / opus) or a full provider slug. The provider is
+# chosen by BER_LLM_PROVIDER (see .env.example).
+models:
+  classification: "haiku"        # abstract screen (cheap, every paper)
+  screening: "haiku"             # treatment-trial screen
+  extraction_pass1: "sonnet"     # full-text eligibility
+  extraction_pass2: "sonnet"     # full quantitative extraction
+
+# Parallel pass-2 workers (default 10).
+# extraction_workers: 5
+
+# --- Full text -----------------------------------------------------------------
+fulltext:
+  structured: true          # also fetch publisher XML / full-text HTML beside the PDF
+  supplementary: false      # supplementary files (slow, can be large)
+  xml_first: true           # extraction prefers publisher XML (keeps table structure)
+  retry_on_empty: true      # an extraction with no numbers retries on the next source
+  # max_supplementary_mb: 50
+
+# Article types whose full text steps/download_pdfs.py fetches.
+pdf_types:
+  - Original Research
+  - Clinical Trial
+  - Prospective Cohort Study
+  - Retrospective Cohort Study
+  - Case-Control Study
+  - Cross-Sectional Study
+  - Other Observational Study
+
+# --- Keyword pre-gate (steps/classify.py quick / relevance) --------------------------
+# Abstracts mentioning none of topic.synonyms (+ extra_terms) are labelled
+# off-topic without an LLM call. Non-Latin abstracts are never gated.
+classification:
+  pregate:
+    enabled: true
+    extra_terms: []
+
+# --- Meta-analysis (used when generate_meta_analysis is true) ------------------
+meta_analysis:
+  model: random             # random | fixed
+  tau2_method: REML         # DL | PM | REML
+  ci_method: hksj           # wald | hksj (Knapp-Hartung; robust with few trials)
+  level: 0.95
+  min_trials: 2             # minimum trials in a group to pool
+  prediction_interval: true
+  publication_bias: true    # Egger's test + funnel + trim-and-fill
+  leave_one_out: true
+  subgroup_by: null         # a dotted record field, e.g. risk_of_bias.overall_judgment
+
+# --- Directories -----------------------------------------------------------------
+dirs:
+  # Where the per-paper store (papers/<Type>/<doi>/) lives. Empty: projects/<slug>/papers.
+  base_pdf_dir: ""
+  # Hand-built pass-2 input directories. Normally leave empty: pass 2 reads the
+  # eligible_* buckets stage_eligible.py writes. Ignored in studio-managed runs.
+  eligible_trials: ""
+  # observational_treatment: ""
+  # Directories the treatment-trial screen reads instead of the paper store.
+  # Ignored in studio-managed runs.
+  screening_dirs: []
+
+# --- Optional -------------------------------------------------------------------
+# Free-form questions appended to the pass-2 extraction prompt:
+# custom_extraction_questions:
+#   - "Was melatonin dosed before bedtime or at a fixed clock time?"
+#
+# A directory of prompt overrides, relative to this file (prompts/<name>.txt):
+# prompts_dir: prompts_melatonin
+#
+# Topic-specific derivation scripts run before the export:
+# extra_steps:
+#   - id: dose_normalization
+#     script: scripts/normalize_dose.py
+#     label: "Normalize melatonin doses to mg"
+#
+# INSPECT-SR systematic-review manuscript (spends model time):
+# systematic_review:
+#   enabled: false

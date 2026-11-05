@@ -1,0 +1,17 @@
+You are a biomedical literature classifier. Determine whether the following paper is primarily focused on {topic_name} ({topic_synonyms_str}).
+
+A paper IS about {topic_name} if it:
+- Studies persistent symptoms, conditions, or sequelae related to {topic_name}
+- Investigates mechanisms, risk factors, prevalence, treatment, or patient experiences of {topic_name}
+- Is a review, meta-analysis, or guideline specifically focused on {topic_name}
+
+A paper is NOT about {topic_name} if it:
+{not_about_bullets}
+
+ABSTRACT:
+{abstract}
+
+Also indicate whether the paper studies a treatment or intervention for {topic_name}.
+
+Respond with ONLY a JSON object and no other text:
+{{"is_relevant": "yes" or "no", "confidence": "high" or "medium" or "low", "studies_treatment": "yes" or "no"}}

@@ -1,0 +1,58 @@
+You are canonicalizing the names of clinical-trial interventions for a "{topic_name}" evidence dashboard.
+
+{topic_description}
+
+You will be given a JSON array of intervention entries. Each entry is:
+  {"name": "<raw intervention name as extracted from a paper>", "category": "<broad category>", "trials": <how many trials used this exact raw name>}
+
+The same intervention has often been written many different ways across papers (different
+capitalisation, punctuation, brand vs generic, dose/route/setting qualifiers, acronyms,
+spelling). Your job is to assign every raw name to a single CANONICAL display name so that
+all variants of the same intervention collapse to one label.
+
+RULES
+1. MERGE variants of the SAME intervention. Treat these as the same intervention:
+   - case / punctuation / spacing / hyphen-vs-slash differences
+   - brand vs generic ("Paxlovid" = "nirmatrelvir/ritonavir"); keep one canonical form
+   - dose, frequency, duration, or formulation qualifiers ("Metformin 500mg" = "Metformin")
+   - route qualifiers when the drug is the same ("oral dexamethasone" = "Dexamethasone")
+   - care-setting / delivery qualifiers for the same therapy
+     ("Inpatient pulmonary rehabilitation", "Home-based pulmonary rehabilitation",
+      "Outpatient pulmonary rehabilitation programme" → "Pulmonary rehabilitation")
+   - acronym vs spelled-out ("tDCS" = "Transcranial direct current stimulation")
+   - singular/plural and "therapy/training/program" wording differences for the same thing
+   - "vaccine" vs "vaccination" for the same agent ("COVID-19 vaccine" = "COVID-19 vaccination")
+2. DO NOT merge interventions that are clinically distinct:
+   - different drugs / molecules (Molnupiravir ≠ Nirmatrelvir/ritonavir ≠ Remdesivir)
+   - different therapy modalities (aerobic exercise ≠ resistance exercise ≠ inspiratory muscle
+     training); distinct named programs that combine different components
+   - a single agent vs a named multi-component program built around it
+   When unsure whether two names are the same intervention, keep them SEPARATE.
+3. CANONICAL NAME formatting:
+   - clean, human-readable, Title Case (keep standard acronyms/brands as written)
+   - prefer the generic name, adding the common brand once if helpful:
+     "Nirmatrelvir/ritonavir (Paxlovid)"
+   - include a well-known acronym once if commonly used:
+     "Transcutaneous auricular vagus nerve stimulation (taVNS)"
+   - no dose/route/setting/duration qualifiers in the canonical name
+4. Every input name MUST appear exactly once as a key in your output. Use IDENTICAL canonical
+   strings for names that should merge (byte-for-byte, so they group correctly).
+
+WORKED EXAMPLES (illustrative — apply the same logic to the input)
+  "nirmatrelvir/ritonavir (Paxlovid)", "Nirmatrelvir-ritonavir", "nirmatrelvir plus ritonavir"
+      → "Nirmatrelvir/ritonavir (Paxlovid)"
+  "Inpatient pulmonary rehabilitation", "Pulmonary rehabilitation programme",
+  "Home-based pulmonary rehabilitation (HBPR)"
+      → "Pulmonary rehabilitation"
+  "Hyperbaric oxygen therapy (HBO2)", "Hyperbaric Oxygen Therapy"
+      → "Hyperbaric oxygen therapy"
+  "COVID-19 vaccination (2 doses)", "COVID-19 vaccine (any type, 1-3 doses)"
+      → "COVID-19 vaccination"
+
+OUTPUT
+Return ONLY a single JSON object mapping each input raw name to its canonical name:
+  {"<raw name>": "<canonical name>", ...}
+No commentary, no markdown — just the JSON object.
+
+INPUT:
+{names_json}

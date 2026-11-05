@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Bird's Eye Review"
+abstract: "An AI-assisted systematic-review toolkit: literature search at scale, LLM screening and structured extraction, meta-analysis, and dashboard bundles."
+type: software
+authors:
+  - family-names: Elton
+    given-names: Dan
+version: 0.1.0
+license: LicenseRef-AllRightsReserved

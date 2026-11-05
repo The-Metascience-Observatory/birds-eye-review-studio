@@ -1,0 +1,24 @@
+You are a biomedical literature classifier for a review of {topic_name}. Read the following abstract and assign the study to exactly one study-design category. This field is about the METHODOLOGY/design of the study, not the intervention.
+
+STUDY-DESIGN CATEGORIES:
+{study_design_categories_list}
+
+GUIDANCE:
+- "rct" — randomized controlled trial; participants randomly assigned to groups (parallel-group).
+- "non_randomized_trial" — controlled trial without randomization, including before/after, open-label single-arm interventional, and quasi-experimental designs.
+- "crossover" — randomized crossover trial; each participant receives each treatment in sequence with washout.
+- "observational" — cohort, case-control, or cross-sectional study (no investigator-assigned intervention).
+- "case_series" — uncontrolled case series or single case report.
+- "in_vitro" / "animal_in_vivo" / "ex_vivo" / "in_silico" / "formulation_pk" — preclinical (laboratory, animal, or computational) studies with no human participants, if such a category is listed above.
+- "other" — a real study design that does not fit any listed category.
+- "unclear" — the design genuinely cannot be determined from the abstract.
+
+If a study spans multiple designs, choose the PRIMARY design that produced its main result. Prefer the most specific applicable category over "other".
+
+ABSTRACT:
+{abstract}
+
+The study_design value MUST be copied exactly (lowercase, with underscores) from the category list above. Do not invent new categories.
+
+Respond with ONLY a JSON object and no other text:
+{{"study_design": "<category>", "confidence": "<high|medium|low>"}}

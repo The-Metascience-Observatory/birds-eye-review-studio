@@ -1,0 +1,35 @@
+# Keep line endings sane across Windows/WSL/macOS/Linux checkouts.
+#
+# Without this, a Windows Git with core.autocrlf=true rewrites LF files to CRLF
+# on checkout, which corrupts shell scripts (CRLF shebang → "bad interpreter:
+# /usr/bin/env python3\r") and Python scripts run directly. Force LF for all
+# text so a WSL/Linux user always gets working files.
+
+# Default: let Git detect text and normalize it to LF in the repo.
+* text=auto eol=lf
+
+# Source and config — always LF, never CRLF.
+*.py    text eol=lf
+*.sh    text eol=lf
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.js    text eol=lf
+*.jsx   text eol=lf
+*.json  text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf
+*.md    text eol=lf
+*.css   text eol=lf
+*.toml  text eol=lf
+*.cfg   text eol=lf
+*.txt   text eol=lf
+
+# Binary assets — never touched.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.pdf   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary

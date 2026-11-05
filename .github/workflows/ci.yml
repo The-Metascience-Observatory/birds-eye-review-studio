@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyflakes
+      # Same paths as scripts/check.py.
+      - run: python -m pyflakes run_pipeline.py steps ber_core scripts tests server/app server/tests server/scripts
+
+  pipeline:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e '.[test]'
+      # Sibling packages (fetchpdf, pdf4llm, docling) are optional; tests that
+      # need them skip and the skips are listed (-rs in pyproject.toml).
+      - run: python -m pytest -q
+
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update && sudo apt-get install -y redis-server
+      # The same install dev.sh gives server/.venv: the server's own requirements
+      # only (ber_core is imported from the checkout, not installed).
+      - run: pip install -r server/requirements.txt
+      - run: python -m pytest -q
+        working-directory: server
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r typecheck
+      - run: npx next build
+        working-directory: studio

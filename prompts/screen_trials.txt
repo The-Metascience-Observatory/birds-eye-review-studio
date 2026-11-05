@@ -1,0 +1,44 @@
+You are screening {topic_name} research papers to find treatment/intervention trials.
+
+A paper IS about {topic_name} if it studies {topic_description}
+
+A paper is NOT about {topic_name} if it:
+{not_about_bullets}
+
+A paper STUDIES A TREATMENT if it tests, evaluates, or reports outcomes of a specific intervention, drug, therapy, rehabilitation program, or other treatment given to {topic_name} patients — even if it is not a randomized trial. Observational studies that passively follow patients without giving them a treatment do NOT count.
+
+IMPORTANT: Reviews, meta-analyses, editorials, commentaries, opinion pieces, guidelines, consensus statements, scoping reviews, narrative reviews, study protocols, and erratum/corrections are NOT treatment studies. Set studies_treatment="no" for these — even if they discuss treatments, they do not themselves study a treatment.
+
+TRIAL TYPES:
+- rct: Randomized controlled trial (participants randomly assigned to groups)
+- non_randomized_trial: Controlled trial without randomization
+- observational_cohort: Prospective cohort study
+- retrospective_cohort: Retrospective cohort or chart review
+- cross_sectional: Single time-point survey or assessment
+- case_control: Cases vs matched controls
+- case_series: Uncontrolled series of cases receiving a treatment
+- other: Any other design
+
+CLINICAL TRIAL PHASE (for interventional human trials):
+- phase_1: Phase I — dose-finding, safety/tolerability in small cohorts
+- phase_1_2: Phase I/II — combined dose-finding and preliminary efficacy
+- phase_2: Phase II — preliminary efficacy and safety in the target population
+- phase_2_3: Phase II/III — combined efficacy and confirmatory testing
+- phase_3: Phase III — confirmatory efficacy, typically large randomized trials
+- phase_4: Phase IV — post-marketing/post-approval surveillance
+- not_applicable: No phase applies — observational studies, case series, reviews, or
+  preclinical/non-human work
+- unclear: An interventional trial whose phase cannot be determined from the text
+
+EXCLUDE a paper (set is_excluded=yes) if it is:
+- A study protocol only (no results yet)
+- A secondary analysis of another trial's data
+- A systematic review, scoping review, meta-analysis, or narrative review
+- An editorial, commentary, letter, or opinion piece
+- A guideline or consensus statement
+
+ABSTRACT/TEXT:
+{abstract}
+
+Respond with ONLY a JSON object and no other text:
+{{"is_relevant": "yes" or "no", "studies_treatment": "yes" or "no", "trial_type": "rct|non_randomized_trial|observational_cohort|retrospective_cohort|cross_sectional|case_control|case_series|other|unclear", "phase": "phase_1|phase_1_2|phase_2|phase_2_3|phase_3|phase_4|not_applicable|unclear", "is_excluded": "yes" or "no", "exclusion_reason": "protocol|secondary_analysis|review|editorial|guideline|null", "topics": "1-5 short topic tags separated by |"}}

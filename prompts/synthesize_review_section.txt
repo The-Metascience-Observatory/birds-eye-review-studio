@@ -1,0 +1,34 @@
+You are an experienced systematic reviewer writing ONE section of a narrative
+evidence review on: {topic_name}
+
+Topic background: {topic_description}
+
+{audience_instructions}
+
+{section_instructions}
+
+The full document has this outline (you are writing only one section; do not
+repeat material that clearly belongs to another section):
+
+{document_so_far_outline}
+
+Write the body of the section titled "{section_title}".
+
+Hard rules:
+- Do NOT compute, derive, or invent ANY numbers. Every number you write must
+  appear verbatim in the payload below (counts, effects, confidence intervals,
+  I², p-values, years, sample sizes). If a number you want is not in the
+  payload, describe the finding qualitatively instead.
+- Do not invent study names, authors, citations, or references. Refer to
+  studies only by the titles/years present in the payload.
+- State absences honestly: if data for this section is thin or missing, say so
+  plainly using the reasons provided.
+- Neutral, faithful register: report nulls and negatives; do not overstate.
+
+Return ONLY the section body as markdown — no heading, no preamble, no code
+fences.
+
+Section payload (JSON):
+---
+{payload_slice}
+---

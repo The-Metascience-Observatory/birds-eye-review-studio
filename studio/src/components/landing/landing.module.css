@@ -1,0 +1,454 @@
+/* Logged-out marketing landing page. Animations + SVG styling live here; layout
+ * mostly uses Tailwind in LandingPage.tsx. Colors ride the studio's existing HSL
+ * tokens (--primary, --border, …); the handful of extra semantic colors the
+ * funnel needs (verdict green/red/amber, card-line) are defined on .landing with
+ * the same three-state dark handling as globals.css (.dark class AND system
+ * preference). */
+
+.landing {
+  --inc: #178a52;
+  --exc: #c14953;
+  --pend: #b97a1e;
+  --card-line: #d8dee5;
+  --tint: #f3f6f9;
+}
+:global(.dark) .landing {
+  --inc: #3fbf82;
+  --exc: #e0707a;
+  --pend: #d99a3d;
+  --card-line: #364150;
+  --tint: #181e2b;
+}
+@media (prefers-color-scheme: dark) {
+  :global(:root:not(.light)) .landing {
+    --inc: #3fbf82;
+    --exc: #e0707a;
+    --pend: #d99a3d;
+    --card-line: #364150;
+    --tint: #181e2b;
+  }
+}
+
+.serif {
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino,
+    Georgia, serif;
+}
+.mono {
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas,
+    monospace;
+}
+
+/* ---------- funnel frame ---------- */
+.funnelFrame {
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  background: var(--tint);
+  overflow: hidden;
+}
+.funnelFrame svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ---------- svg text/lines ---------- */
+.svLabel {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  fill: hsl(var(--muted-foreground));
+}
+.svLabelStrong {
+  fill: hsl(var(--foreground));
+  font-weight: 600;
+}
+.svGate {
+  stroke: hsl(var(--border));
+  stroke-dasharray: 3 4;
+  stroke-width: 1.5;
+}
+.glyphLine {
+  stroke: var(--card-line);
+}
+.db rect {
+  fill: hsl(var(--card));
+  stroke: var(--card-line);
+}
+.db text {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+  fill: hsl(var(--muted-foreground));
+  text-anchor: middle;
+}
+
+/* ---------- flowing papers ---------- */
+.pCard {
+  fill: hsl(var(--card));
+  stroke: var(--card-line);
+  stroke-width: 1;
+}
+.pLine {
+  fill: var(--card-line);
+}
+.pDot {
+  fill: var(--card-line);
+}
+.paper {
+  animation: flowInc 15s linear infinite;
+  animation-delay: var(--d);
+  will-change: transform, opacity;
+  opacity: 0;
+}
+.paper .pDot {
+  animation: dotInc 15s linear infinite;
+  animation-delay: var(--d);
+}
+.exc {
+  animation-name: flowExc;
+}
+.exc .pDot {
+  animation-name: dotExc;
+}
+.exc .pCard {
+  animation: cardExc 15s linear infinite;
+  animation-delay: var(--d);
+}
+
+@keyframes flowInc {
+  0% {
+    transform: translate(112px, var(--y0)) scale(0.6);
+    opacity: 0;
+  }
+  6% {
+    transform: translate(136px, var(--y0)) scale(1);
+    opacity: 1;
+  }
+  34% {
+    transform: translate(388px, var(--lane));
+    opacity: 1;
+  }
+  58% {
+    transform: translate(618px, var(--lane));
+    opacity: 1;
+  }
+  64% {
+    transform: translate(650px, var(--lane)) scale(0.4);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(650px, var(--lane)) scale(0.4);
+    opacity: 0;
+  }
+}
+@keyframes flowExc {
+  0% {
+    transform: translate(112px, var(--y0)) scale(0.6);
+    opacity: 0;
+  }
+  6% {
+    transform: translate(136px, var(--y0)) scale(1);
+    opacity: 1;
+  }
+  34% {
+    transform: translate(388px, var(--lane));
+    opacity: 1;
+  }
+  42% {
+    transform: translate(420px, calc(var(--lane) + 26px)) rotate(8deg);
+    opacity: 0.9;
+  }
+  54% {
+    transform: translate(452px, 316px) rotate(14deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(452px, 316px);
+    opacity: 0;
+  }
+}
+@keyframes dotInc {
+  0%,
+  33% {
+    fill: var(--card-line);
+  }
+  35%,
+  100% {
+    fill: var(--inc);
+  }
+}
+@keyframes dotExc {
+  0%,
+  33% {
+    fill: var(--card-line);
+  }
+  35%,
+  100% {
+    fill: var(--exc);
+  }
+}
+@keyframes cardExc {
+  0%,
+  33% {
+    stroke: var(--card-line);
+  }
+  35%,
+  100% {
+    stroke: var(--exc);
+  }
+}
+
+/* ---------- evidence-table cells pop in ---------- */
+.cell {
+  opacity: 0;
+  animation: cellPop 15s linear infinite;
+  animation-delay: var(--cd);
+}
+@keyframes cellPop {
+  0% {
+    opacity: 0;
+  }
+  2.5% {
+    opacity: var(--co, 1);
+  }
+  96% {
+    opacity: var(--co, 1);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ---------- downstream glyph life ---------- */
+.diamondPulse {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: pulse 15s linear infinite;
+}
+@keyframes pulse {
+  0%,
+  70%,
+  100% {
+    transform: scale(1);
+  }
+  76% {
+    transform: scale(1.25);
+  }
+  82% {
+    transform: scale(1);
+  }
+}
+.barGrow {
+  transform-origin: bottom;
+  transform-box: fill-box;
+  animation: grow 15s linear infinite;
+}
+@keyframes grow {
+  0%,
+  78% {
+    transform: scaleY(0.55);
+  }
+  88%,
+  100% {
+    transform: scaleY(1);
+  }
+}
+
+/* ---------- the birds ---------- */
+.bird {
+  fill: hsl(var(--primary));
+  opacity: 0.88;
+}
+.birdFly {
+  animation: fly 32s linear infinite;
+}
+.birdBob {
+  animation: bob 3.4s ease-in-out infinite;
+}
+.wingL {
+  animation: flapL 1.15s ease-in-out infinite alternate;
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+.wingR {
+  animation: flapR 1.15s ease-in-out infinite alternate;
+  transform-box: fill-box;
+  transform-origin: center top;
+}
+@keyframes fly {
+  0% {
+    transform: translate(-80px, 98px) rotate(4deg);
+  }
+  25% {
+    transform: translate(280px, 66px) rotate(-3deg);
+  }
+  50% {
+    transform: translate(640px, 98px) rotate(3deg);
+  }
+  75% {
+    transform: translate(960px, 62px) rotate(-4deg);
+  }
+  100% {
+    transform: translate(1280px, 94px) rotate(3deg);
+  }
+}
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+@keyframes flapL {
+  from {
+    transform: rotate(-6deg) scaleY(0.92);
+  }
+  to {
+    transform: rotate(13deg) scaleY(1.06);
+  }
+}
+@keyframes flapR {
+  from {
+    transform: rotate(6deg) scaleY(0.92);
+  }
+  to {
+    transform: rotate(-13deg) scaleY(1.06);
+  }
+}
+
+/* third bird: circles above the Pool / forest-plot station in the funnel,
+ * banking to face its travel direction — same continuous-rotation trick as
+ * hbOrbit (-90° → -450°) so the loop closes seamlessly. */
+.fnOrbit {
+  animation: fnOrbit 14s linear infinite;
+}
+@keyframes fnOrbit {
+  0% {
+    transform: translate(1100px, 105px) rotate(-90deg);
+  }
+  12.5% {
+    transform: translate(1059px, 75px) rotate(-163deg);
+  }
+  25% {
+    transform: translate(960px, 63px) rotate(-180deg);
+  }
+  37.5% {
+    transform: translate(861px, 75px) rotate(-197deg);
+  }
+  50% {
+    transform: translate(820px, 105px) rotate(-270deg);
+  }
+  62.5% {
+    transform: translate(861px, 135px) rotate(-343deg);
+  }
+  75% {
+    transform: translate(960px, 147px) rotate(-360deg);
+  }
+  87.5% {
+    transform: translate(1059px, 135px) rotate(-377deg);
+  }
+  100% {
+    transform: translate(1100px, 105px) rotate(-450deg);
+  }
+}
+
+/* headline bird: orbits the h1, passing behind the text */
+.heroBird {
+  position: absolute;
+  top: 24px;
+  left: -30px;
+  width: min(820px, 96%);
+  height: auto;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 0;
+}
+.hbFly {
+  animation: hbOrbit 20s linear infinite;
+}
+@keyframes hbOrbit {
+  0% {
+    transform: translate(760px, 140px) rotate(-90deg);
+  }
+  12.5% {
+    transform: translate(652px, 59px) rotate(-163deg);
+  }
+  25% {
+    transform: translate(390px, 25px) rotate(-180deg);
+  }
+  37.5% {
+    transform: translate(128px, 59px) rotate(-197deg);
+  }
+  50% {
+    transform: translate(20px, 140px) rotate(-270deg);
+  }
+  62.5% {
+    transform: translate(128px, 221px) rotate(-343deg);
+  }
+  75% {
+    transform: translate(390px, 255px) rotate(-360deg);
+  }
+  87.5% {
+    transform: translate(652px, 221px) rotate(-377deg);
+  }
+  100% {
+    transform: translate(760px, 140px) rotate(-450deg);
+  }
+}
+@media (max-width: 600px) {
+  .heroBird {
+    display: none;
+  }
+}
+
+/* ---------- metascience band (committed dark in both themes) ---------- */
+.band {
+  background: #122c42;
+  color: #dfe9f2;
+}
+.band :global(a) {
+  color: #6fb3e8;
+}
+.heatLabel {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  fill: #8aa2b6;
+}
+
+/* ---------- reduced motion: freeze into a legible static frame ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .paper,
+  .paper .pDot,
+  .exc .pCard,
+  .cell,
+  .diamondPulse,
+  .barGrow,
+  .birdFly,
+  .birdBob,
+  .wingL,
+  .wingR,
+  .hbFly,
+  .fnOrbit {
+    animation: none;
+  }
+  .paper {
+    opacity: 1;
+    transform: translate(calc(var(--static-x) * 1px), var(--lane));
+  }
+  .exc {
+    transform: translate(calc(var(--static-x) * 1px), calc(var(--lane) + 30px));
+    opacity: 0.5;
+  }
+  .cell {
+    opacity: var(--co, 1);
+  }
+  .birdFly {
+    transform: translate(880px, 78px) rotate(-2deg);
+  }
+  .hbFly {
+    transform: translate(700px, 48px) rotate(-160deg);
+  }
+  .fnOrbit {
+    transform: translate(1030px, 80px) rotate(-30deg);
+  }
+}
