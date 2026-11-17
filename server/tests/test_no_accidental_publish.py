@@ -4,7 +4,7 @@ Publishing a dashboard is a two-party, permission-gated act. Until this change
 it was the tail of an ordinary run: `13_export` was step 17 of
 `canonical_steps()`, and the studio's DEFAULT run target ("Full review") ran to
 the end with `to_num: undefined`. Clicking the most obvious button in the UI
-wrote straight into the shared `metascience_observatory_website` repo. It was
+wrote straight into the shared `metascience-observatory-website` repo. It was
 also resume-reachable, so resuming an interrupted review could resume *into* a
 publish.
 

@@ -27,7 +27,7 @@ if str(REPO_ROOT) not in sys.path:
 from ber_core import dashboard_summary as DS  # noqa: E402
 from ber_core import grading as M  # noqa: E402
 
-WEBSITE = REPO_ROOT.parent / "metascience_observatory_website"
+WEBSITE = REPO_ROOT.parent / "website" / "metascience-observatory-website"
 DATA = WEBSITE / "data" / "birds_eye_reviews"
 
 CORPORA = ("nattokinase_for_cardiovascular_disease_prevention", "long_covid",
