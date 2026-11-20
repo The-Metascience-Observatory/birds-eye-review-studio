@@ -121,6 +121,96 @@ def test_search_no_longer_creates_a_legacy_pdfs_dir(search, tmp_path, monkeypatc
     assert not hasattr(search, "rename_pdfs")
 
 
+# ── PubMed's 10,000-record paging cap; OpenAlex phrase/type handling ───────
+
+def _fake_pubmed(monkeypatch, search, entry_dates):
+    """Stand in for the history server: one record per entry date in the list."""
+    import datetime as dt
+    calls = []
+
+    def esearch(query, mindate=None, maxdate=None):
+        lo = dt.datetime.strptime(mindate or "1800/01/01", "%Y/%m/%d").date()
+        hi = dt.datetime.strptime(maxdate or "3000/12/31", "%Y/%m/%d").date()
+        hits = [d for d in entry_dates if lo <= d <= hi]
+        calls.append((lo, hi, len(hits)))
+        return "env", (lo, hi), len(hits)
+
+    monkeypatch.setattr(search, "_pubmed_esearch", esearch)
+    monkeypatch.setattr(search, "NCBI_DELAY", 0)
+    monkeypatch.setattr(search, "SEARCH_RUN", search.QueryLedger())
+    search.SEARCH_RUN.begin("pubmed:q")
+    return calls
+
+
+def test_pubmed_query_over_the_paging_cap_is_split_by_entry_date(search, monkeypatch):
+    import datetime as dt
+    monkeypatch.setattr(search, "PUBMED_WINDOW_MAX", 100)
+    monkeypatch.setattr(search, "SINCE_DATE", None)
+    monkeypatch.setattr(search, "MAX_PER_QUERY", 10**6)
+    today = dt.date.today()
+    dates = [today - dt.timedelta(days=i % 400) for i in range(950)]
+    _fake_pubmed(monkeypatch, search, dates)
+    windows, total = search.search_pubmed("q")
+    assert total == 950
+    assert sum(w[2] for w in windows) == 950          # nothing lost past the cap
+    assert all(0 < w[2] <= 100 for w in windows)
+    spans = sorted(w[1] for w in windows)             # disjoint date windows
+    assert all(a[1] < b[0] for a, b in zip(spans, spans[1:]))
+    assert search.SEARCH_RUN.complete("pubmed:q")
+
+
+def test_pubmed_small_query_is_one_window_and_since_bounds_it(search, monkeypatch):
+    import datetime as dt
+    monkeypatch.setattr(search, "MAX_PER_QUERY", 10**6)
+    monkeypatch.setattr(search, "SINCE_DATE", "2026-01-01")
+    calls = _fake_pubmed(monkeypatch, search,
+                         [dt.date(2025, 6, 1), dt.date(2026, 3, 1)])
+    windows, total = search.search_pubmed("q")
+    assert total == 1 and [w[2] for w in windows] == [1]
+    assert calls[0][0] == dt.date(2026, 1, 1)
+
+
+def test_pubmed_single_day_over_the_cap_is_flagged_not_hidden(search, monkeypatch):
+    import datetime as dt
+    monkeypatch.setattr(search, "PUBMED_WINDOW_MAX", 10)
+    monkeypatch.setattr(search, "SINCE_DATE", None)
+    monkeypatch.setattr(search, "MAX_PER_QUERY", 10**6)
+    _fake_pubmed(monkeypatch, search, [dt.date(2024, 5, 5)] * 25)
+    windows, total = search.search_pubmed("q")
+    assert total == 25 and sum(w[2] for w in windows) == 10
+    assert not search.SEARCH_RUN.complete("pubmed:q")
+
+
+def test_openalex_multiword_keyword_becomes_a_phrase(search):
+    assert search._openalex_term("long COVID") == '"long COVID"'
+    assert search._openalex_term("melatonin") == "melatonin"
+    # explicit syntax is the author's and is left alone
+    assert search._openalex_term('"long COVID"') == '"long COVID"'
+    assert search._openalex_term("melatonin AND insomnia") == "melatonin AND insomnia"
+    assert search._openalex_term('("post-COVID" OR PASC)') == '("post-COVID" OR PASC)'
+
+
+def test_openalex_searches_reviews_and_preprints(search, monkeypatch):
+    seen = []
+    monkeypatch.setattr(search, "OPENALEX_TITLE_SEARCHES", ["long COVID"])
+    monkeypatch.setattr(search, "OPENALEX_ABSTRACT_SEARCHES", [])
+    monkeypatch.setattr(search, "SINCE_DATE", None)
+    monkeypatch.setattr(search, "IGNORE_PROGRESS", True)
+    monkeypatch.setattr(search, "_openalex_paginate",
+                        lambda params, label, max_results=None: (seen.append(params), ([], True))[1])
+    search.run_openalex_searches({"completed_queries": []})
+    flt = seen[0]["filter"]
+    assert 'title.search:"long COVID"' in flt
+    assert "review" in flt and "preprint" in flt
+
+
+def test_query_drafter_does_not_exclude_preprints():
+    from ber_core.llm_search import _build_prompt
+    prompt = _build_prompt(topic_name="x", description="", synonyms=[],
+                           mesh_terms=[], not_about=[])
+    assert "Do NOT add" in prompt and "preprints" in prompt
+
+
 # ── D5: enrich refuses to rewrite a file it could not fully read ───────────
 
 def test_enrich_refuses_malformed_jsonl(tmp_path):

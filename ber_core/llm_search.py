@@ -45,12 +45,16 @@ syntax appropriate to each source:
 - "pubmed": PubMed/Entrez syntax. Use [Title/Abstract], [MeSH Terms],
   [Supplementary Concept] as appropriate. Quote multi-word phrases.
   Combine synonyms with OR. Typically 1-3 queries.
-- "openalex_title": plain phrases that should appear in the title.
-  No operators — one phrase per list element.
-- "openalex_abstract": plain phrases that should appear in the abstract.
-  No operators — one phrase per list element.
-- "europepmc": Europe PMC syntax (TITLE:"...", ABSTRACT:"...", AND, OR,
-  SRC:MED). Typically 1-2 queries combining title-only and abstract-only.
+- "openalex_title": exact phrases that should appear in the title.
+  No operators — one phrase per list element. Each element is matched as an
+  exact phrase, so list every spelling variant separately and keep phrases
+  short (2-4 words).
+- "openalex_abstract": exact phrases that should appear in the abstract.
+  No operators — one phrase per list element (same rules as above).
+- "europepmc": Europe PMC syntax (TITLE:"...", ABSTRACT:"...", AND, OR).
+  Typically 1-2 queries combining title-only and abstract-only. Do NOT add
+  SRC:MED — it excludes preprints (medRxiv, bioRxiv, Research Square), which
+  the review needs.
 - "semantic_scholar": short keyword phrases, quoted. One per list element.
 - "cyberleninka": Russian-language open-access repository. Provide queries
   in RUSSIAN (Cyrillic) covering the topic and its main synonyms — one

@@ -13,6 +13,7 @@ Usage (every run names its review config):
 import argparse
 import concurrent.futures
 import csv
+import datetime
 import json
 import os
 import re
@@ -357,25 +358,87 @@ def _request_with_retry(url, params=None, headers=None, max_retries=5,
 # Section 5: PubMed search
 # =============================================================================
 
-def search_pubmed(query, max_results=None):
-    """Post query to PubMed history server, return (web_env, query_key, count)."""
-    limit = max_results or MAX_PER_QUERY
+# NCBI refuses to page past record ~10,000 of a PubMed history result
+# ("'retstart' cannot be larger than 9998"), for esearch AND efetch. A query
+# with more hits than this is split into entry-date windows that each fit.
+PUBMED_WINDOW_MAX = 9_000
+PUBMED_EPOCH = datetime.date(1800, 1, 1)
+
+
+def _pubmed_esearch(query, mindate=None, maxdate=None):
+    """Post a query (optionally entry-date windowed) to the PubMed history
+    server. Returns ``(web_env, query_key, total)``."""
     esearch_kwargs = dict(db="pubmed", term=query, retmax=0, usehistory="y")
-    if SINCE_DATE:
+    if mindate or maxdate:
         # edat = Entrez date (when the record was added), so late-indexed older
-        # papers are still returned. maxdate open-ended.
+        # papers are still returned by an incremental window.
         esearch_kwargs.update(datetype="edat",
-                              mindate=_pubmed_date(SINCE_DATE),
-                              maxdate="3000/12/31")
+                              mindate=mindate or "1800/01/01",
+                              maxdate=maxdate or "3000/12/31")
     handle = Entrez.esearch(**esearch_kwargs)
     record = Entrez.read(handle)
     handle.close()
-    total = int(record.get("Count", 0))
-    fetch_count = min(total, limit)
+    return record["WebEnv"], record["QueryKey"], int(record.get("Count", 0))
+
+
+def _pubmed_windows(query, lo, hi, open_ended=False):
+    """Yield ``(web_env, query_key, total)`` for entry-date windows of ``query``
+    that each hold at most PUBMED_WINDOW_MAX records, bisecting [lo, hi] (dates,
+    inclusive) until they fit. ``open_ended`` leaves the top of the range
+    unbounded so records entered today are never cut off."""
+    web_env, query_key, total = _pubmed_esearch(
+        query, lo.strftime("%Y/%m/%d"),
+        None if open_ended else hi.strftime("%Y/%m/%d"))
+    time.sleep(NCBI_DELAY)
+    if total == 0:
+        return
+    if total <= PUBMED_WINDOW_MAX:
+        yield web_env, query_key, total
+        return
+    if lo >= hi:
+        # One day alone exceeds the cap: fetch what NCBI allows, flag the rest.
+        SEARCH_RUN.fail(f"PubMed returned {total} records for the single entry "
+                        f"date {lo}; only the first {PUBMED_WINDOW_MAX} are reachable")
+        yield web_env, query_key, PUBMED_WINDOW_MAX
+        return
+    mid = lo + (hi - lo) // 2
+    yield from _pubmed_windows(query, lo, mid)
+    yield from _pubmed_windows(query, mid + datetime.timedelta(days=1), hi,
+                               open_ended=open_ended)
+
+
+def search_pubmed(query, max_results=None):
+    """Run a PubMed query. Returns ``(windows, total)``: ``windows`` is a list
+    of ``(web_env, query_key, fetch_count)`` history handles that together cover
+    the result set (one handle unless the query exceeds NCBI's 10,000-record
+    paging cap, in which case it is split by entry date)."""
+    limit = max_results or MAX_PER_QUERY
+    since = _pubmed_date(SINCE_DATE) if SINCE_DATE else None
+    web_env, query_key, total = _pubmed_esearch(query, since)
+    _log(f"  PubMed: {total} total results for: {query[:80]}...")
     if total > limit:
         SEARCH_RUN.fail("result cap reached before all results were fetched")
-    _log(f"  PubMed: {total} total results for: {query[:80]}...")
-    return record["WebEnv"], record["QueryKey"], fetch_count
+    if total <= PUBMED_WINDOW_MAX:
+        return ([(web_env, query_key, min(total, limit))] if total else []), total
+
+    lo = (datetime.date.fromisoformat(SINCE_DATE) if SINCE_DATE else PUBMED_EPOCH)
+    hi = datetime.date.today()
+    windows, budget = [], limit
+    time.sleep(NCBI_DELAY)
+    for w_env, w_key, w_total in _pubmed_windows(query, lo, hi, open_ended=True):
+        take = min(w_total, budget)
+        windows.append((w_env, w_key, take))
+        budget -= take
+        if budget <= 0:
+            break
+    _log(f"    split into {len(windows)} entry-date windows "
+         f"(PubMed pages at most 10,000 records per search)")
+    covered = sum(w[2] for w in windows)
+    if covered < min(total, limit):
+        # Should not happen (every record has an entry date); never silently
+        # accept a short crawl.
+        SEARCH_RUN.fail(f"date windows cover {covered} of {total} records")
+    return windows, total
 
 
 def _extract_doi_from_medline(rec):
@@ -445,11 +508,12 @@ def run_pubmed_searches(progress):
             _log(f"  [skip] {key[:80]}...")
             continue
         try:
-            web_env, query_key, count = search_pubmed(query)
+            windows, _count = search_pubmed(query)
             time.sleep(NCBI_DELAY)
             complete = True
-            if count > 0:
-                records, complete = fetch_pubmed_metadata(web_env, query_key, count)
+            for web_env, query_key, count in windows:
+                records, ok = fetch_pubmed_metadata(web_env, query_key, count)
+                complete = complete and ok
                 total += dedup_and_append(records, "pubmed", query)
             # Only a clean crawl earns a permanent completion marker. Marking a
             # partially-fetched query done put it in search_progress.json, and
@@ -555,6 +619,29 @@ def _openalex_paginate(params, label, max_results=None):
     return results, complete
 
 
+# Work types searched on OpenAlex. `type:article` alone silently dropped every
+# review, preprint and research letter (OpenAlex types them separately).
+OPENALEX_TYPES = "article|review|preprint|letter"
+
+_OPENALEX_OPERATOR_RE = re.compile(r'["()]|\b(?:AND|OR|NOT)\b')
+
+
+def _openalex_term(keyword: str) -> str:
+    """The search value for an OpenAlex ``*.search`` filter.
+
+    A bare multi-word keyword is matched as a bag of stemmed words ANYWHERE in
+    the field — ``long COVID`` hits every abstract containing "long" and
+    "COVID" (100K works, ~4% on topic). Config entries are phrases, so a
+    multi-word keyword is quoted into an exact phrase. A keyword that already
+    carries quotes, parentheses or uppercase boolean operators is the author
+    taking control of the syntax and is passed through unchanged.
+    """
+    keyword = keyword.strip()
+    if not keyword or _OPENALEX_OPERATOR_RE.search(keyword):
+        return keyword
+    return f'"{keyword}"' if len(keyword.split()) > 1 else keyword
+
+
 def run_openalex_searches(progress):
     _set_source("openalex")
     total = 0
@@ -566,7 +653,7 @@ def run_openalex_searches(progress):
             _log(f"  [skip] {key}")
             continue
         try:
-            flt = f"type:article,title.search:{keyword}"
+            flt = f"type:{OPENALEX_TYPES},title.search:{_openalex_term(keyword)}"
             if SINCE_DATE:
                 flt += f",from_publication_date:{SINCE_DATE}"
             params = {"filter": flt}
@@ -584,7 +671,7 @@ def run_openalex_searches(progress):
             _log(f"  [skip] {key}")
             continue
         try:
-            flt = f"type:article,abstract.search:{keyword}"
+            flt = f"type:{OPENALEX_TYPES},abstract.search:{_openalex_term(keyword)}"
             if SINCE_DATE:
                 flt += f",from_publication_date:{SINCE_DATE}"
             params = {"filter": flt}

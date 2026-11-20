@@ -47,10 +47,12 @@ topic:
 search:
   pubmed:
     - '"melatonin"[Title/Abstract] AND ("insomnia"[Title/Abstract] OR "sleep initiation"[Title/Abstract])'
+  # OpenAlex: a multi-word entry is matched as an EXACT PHRASE. To combine
+  # separate words, write the boolean yourself (uppercase AND / OR / NOT).
   openalex_title:
-    - "melatonin insomnia"
+    - "melatonin AND insomnia"
   openalex_abstract:
-    - "melatonin insomnia"
+    - "melatonin AND insomnia"
   europepmc:
     - 'TITLE:"melatonin" AND (TITLE:"insomnia" OR ABSTRACT:"insomnia")'
   semantic_scholar:
